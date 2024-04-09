@@ -6,6 +6,9 @@ import (
 )
 
 type Client interface {
+	CreateUser(firstName, lastName, email, address, city, state, zip, dob string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
+	GetUserById(id string) (*User, error)
 }
 
 type DB struct {
