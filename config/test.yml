@@ -1,0 +1,9 @@
+environment:
+  development:
+    database:
+      host: localhost
+      port: 5432
+      user: ${TEST_USER}
+      password: ${TEST_PASSWORD}
+      name: ${TEST_DB}
+      connection_string: ${TEST_CONN_STR}
