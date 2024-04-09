@@ -3,6 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/DATA-DOG/go-txdb"
+	_ "github.com/lib/pq"
 )
 
 type Client interface {
@@ -12,14 +15,22 @@ type Client interface {
 }
 
 type DB struct {
-	Conn *sql.DB
+	Conn  *sql.DB
+	TxDB  bool   // Flag to indicate whether to use txdb (only use for testing)
+	TxDrv string // Unique name for txdb registration
 }
 
-func NewDB(connStr string) (*DB, error) {
+func NewDB(connStr string, useTxDB bool, TxDrv string) (*DB, error) {
 	var db *sql.DB
 	var err error
 
-	db, err = sql.Open("postgres", connStr)
+	if useTxDB {
+		txdb.Register(TxDrv, "postgres", connStr)
+		db, err = sql.Open(TxDrv, "")
+	} else {
+		db, err = sql.Open("postgres", connStr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +42,9 @@ func NewDB(connStr string) (*DB, error) {
 
 	fmt.Println("Connected to the database")
 	return &DB{
-		Conn: db,
+		Conn:  db,
+		TxDB:  useTxDB,
+		TxDrv: TxDrv,
 	}, nil
 }
 

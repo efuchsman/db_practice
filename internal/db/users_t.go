@@ -97,7 +97,6 @@ func (db *DB) CreateUserTx(tx *sql.Tx, u *User) (*User, error) {
 	query := `
 			INSERT INTO Users (id, first_name, last_name, email, address, city, state, zip, dob)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			ON CONFLICT (id) DO NOTHING
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id, first_name, last_name, email, address, city, state, zip, dob;`
 
