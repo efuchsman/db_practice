@@ -1,1 +1,3 @@
 .env
+enter_dev.sh
+enter_test.sh
