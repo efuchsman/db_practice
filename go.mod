@@ -1,6 +1,6 @@
 module db_practice
 
-go 1.21.2
+go 1.21
 
 require (
 	github.com/DATA-DOG/go-txdb v0.1.8

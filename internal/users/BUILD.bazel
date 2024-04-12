@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "users",
+    srcs = [
+        "testclient.go",
+        "users.go",
+    ],
+    importpath = "db_practice/internal/users",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/db",
+        "@com_github_pkg_errors//:go_default_library",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
+)
+
+go_test(
+    name = "users_test",
+    srcs = ["users_test.go"],
+    embed = [":users"],
+    deps = [
+        "//internal/db",
+        "@com_github_joho_godotenv//:go_default_library",
+        "@com_github_spf13_viper//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+    ],
+)
