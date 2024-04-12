@@ -1,9 +1,0 @@
-environment:
-  development:
-    database:
-      host: localhost
-      port: 5432
-      user: ${DEV_USER}
-      password: ${DEV_PASSWORD}
-      name: ${DEV_DB}
-      connection_string: ${DEV_CONN_STR}
