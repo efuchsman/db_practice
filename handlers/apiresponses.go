@@ -72,10 +72,16 @@ func write(w http.ResponseWriter, code int, data interface{}) {
 	w.WriteHeader(code)
 
 	if data != nil {
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "")
-		enc.SetEscapeHTML(false)
-		if err := enc.Encode(data); err != nil {
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			fields := log.Fields{"data": data, "code": code}
+			log.WithFields(fields).Errorf("%+v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = w.Write(jsonData)
+		if err != nil {
 			fields := log.Fields{"data": data, "code": code}
 			log.WithFields(fields).Errorf("%+v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

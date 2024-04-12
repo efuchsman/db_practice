@@ -14,14 +14,14 @@ type UsersHandler struct {
 }
 
 type CreateUserRequest struct {
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Email       string `json:"email"`
-	Address     string `json:"address"`
-	City        string `json:"city"`
-	State       string `json:"state"`
-	ZipCode     string `json:"zip_code"`
-	DateOfBirth string `json:"date_of_birth"`
+	FirstName   string
+	LastName    string
+	Email       string
+	Address     string
+	City        string
+	State       string
+	ZipCode     string
+	DateOfBirth string
 }
 
 func NewUsersHandler(u users.Client) *UsersHandler {
@@ -41,7 +41,6 @@ func (u *UsersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	fields := map[string]string{"First Name": req.FirstName, "Last Name": req.LastName, "Email": req.Email, "Address": req.Address, "City": req.City, "State": req.State, "Zip Code": req.ZipCode, "Date of Birth": req.DateOfBirth}
 
 	missingFields := []string{}
-
 	for field, value := range fields {
 		if value == "" {
 			missingFields = append(missingFields, field)
