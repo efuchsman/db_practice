@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"bytes"
 	"db_practice/internal/users"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ var (
 		Id:          "12infioed",
 		FirstName:   "Eli",
 		LastName:    "Fuchsman",
-		Email:       "testEmail@mail.com",
+		Email:       "testemail@mail.com",
 		Address:     "1123 Street St.",
 		City:        "Denver",
 		State:       "CO",
@@ -28,7 +29,7 @@ var (
 		Id:          "12infioEd",
 		FirstName:   "Eli",
 		LastName:    "Fuchsman",
-		Email:       "testEmail2@mail.com",
+		Email:       "testemail2@mail.com",
 		Address:     "1123 Street St.",
 		City:        "Denver",
 		State:       "CO",
@@ -42,7 +43,7 @@ func TestCreateUser(t *testing.T) {
 		description  string
 		userClient   *users.TestClient
 		url          string
-		requestBody  *CreateUserRequest
+		requestBody  io.Reader
 		expectedBody string
 		expectedCode int
 	}{
@@ -52,28 +53,96 @@ func TestCreateUser(t *testing.T) {
 				CreateUserData: testUserEli,
 			},
 			url: "/create",
-			requestBody: &CreateUserRequest{
-				FirstName:   "Eli",
-				LastName:    "Fuchsman",
-				Email:       "testEmail@mail.com",
-				Address:     "1123 Street St.",
-				City:        "Denver",
-				State:       "CO",
-				ZipCode:     "80108",
-				DateOfBirth: "12/14/1993",
-			},
-			expectedBody: `{"id":"12infioed","first_name":"Eli","last_name":"Fuchsman","email":"testEmail@mail.com","address":"1123 Street St.","city":"Denver","state":"CO","zip":"80108","dob":"12/14/1993"}`,
+			requestBody: strings.NewReader(`{
+				"first_name": "Eli",
+				"last_name": "Fuchsman",
+				"email": "testemail@mail.com",
+				"address": "1123 Street St.",
+				"city": "Denver",
+				"state": "CO",
+				"zip": "80108",
+				"dob": "12/14/1993"
+			}`),
+			expectedBody: `{"id":"12infioed","first_name":"Eli","last_name":"Fuchsman","email":"testemail@mail.com","address":"1123 Street St.","city":"Denver","state":"CO","zip":"80108","dob":"12/14/1993"}`,
 			expectedCode: 201,
+		},
+		{
+			description: "Failure: Missing field",
+			url:         "/create",
+			requestBody: strings.NewReader(`{
+					"first_name": "",
+					"last_name": "Fuchsman",
+					"email": "testemail@mail.com",
+					"address": "1123 Street St.",
+					"city": "Denver",
+					"state": "CO",
+					"zip": "80108",
+					"dob": "12/14/1993"
+			}`),
+			expectedBody: `{"message":"BAD_REQUEST","resource":"Users","description":"The value provided is invalid.","errors":[{"field":"First Name","error_code":"invalid"}]}`,
+			expectedCode: 400,
+		},
+		{
+			description: "Failure: Bad JSON",
+			url:         "/create",
+			requestBody: strings.NewReader(`{
+				"first_name": "Eli"
+				"last_name": "Fuchsman",
+				"email": "testemail@mail.com",
+				"address": "1123 Street St.",
+				"city": "Denver",
+				"state": "CO",
+				"zip": "80108",
+				"dob": "12/14/1993"
+			}`),
+			expectedBody: `{"message":"BAD_REQUEST","resource":"Users","description":"The value provided is invalid.","errors":[{"field":"INVALID_JSON","error_code":"invalid"}]}`,
+			expectedCode: 400,
+		},
+		{
+			description: "Failure: Internal Error",
+			url:         "/create",
+			userClient: &users.TestClient{
+				CreateUserErr: errors.New("error"),
+			},
+			requestBody: strings.NewReader(`{
+				"first_name": "Eli",
+				"last_name": "Fuchsman",
+				"email": "testemail@mail.com",
+				"address": "1123 Street St.",
+				"city": "Denver",
+				"state": "CO",
+				"zip": "80108",
+				"dob": "12/14/1993"
+			}`),
+			expectedBody: `{"message":"INTERNAL_ERROR","resource":"Users","description":"An internal error occurred."}`,
+			expectedCode: 500,
+		},
+		{
+			description: "Failure: Email in use",
+			url:         "/create",
+			userClient: &users.TestClient{
+				GetUserByEmailData: testUserEli,
+			},
+			requestBody: strings.NewReader(`{
+				"first_name": "Eli",
+				"last_name": "Fuchsman",
+				"email": "testemail@mail.com",
+				"address": "1123 Street St.",
+				"city": "Denver",
+				"state": "CO",
+				"zip": "80108",
+				"dob": "12/14/1993"
+			}`),
+			expectedBody: `{"message":"CONFLICT_ERROR","resource":"Users","description":"there is a conflict with your request"}`,
+			expectedCode: 409,
 		},
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			t.Parallel()
 			t.Log(tc.description)
 
 			h := NewUsersHandler(tc.userClient)
-			body, _ := json.Marshal(tc.requestBody)
-			r := httptest.NewRequest("POST", tc.url, bytes.NewBuffer(body))
+			r := httptest.NewRequest("POST", tc.url, tc.requestBody)
 
 			w := httptest.NewRecorder()
 			h.CreateUser(w, r)
@@ -83,3 +152,39 @@ func TestCreateUser(t *testing.T) {
 		})
 	}
 }
+
+// func TestGetUserByEmail(t *testing.T) {
+// 	testCases := []struct {
+// 		description  string
+// 		userClient   *users.TestClient
+// 		url          string
+// 		expectedBody string
+// 		expectedCode int
+// 	}{
+// 		{
+// 			description: "Success: User found",
+// 			userClient: &users.TestClient{
+// 				GetUserByEmailData: testUserEli,
+// 			},
+// 			url:          fmt.Sprintf("/users/%s", testUserEli.Email),
+// 			expectedBody: `{}`,
+// 			expectedCode: 200,
+// 		},
+// 	}
+// 	for i, tc := range testCases {
+// 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+// 			t.Log(tc.description)
+
+// 			h := NewUsersHandler(tc.userClient)
+// 			r := httptest.NewRequest("GET", tc.url, nil)
+
+// 			fmt.Println(tc.url)
+
+// 			w := httptest.NewRecorder()
+// 			h.GetUserByEmail(w, r)
+
+// 			assert.Equal(t, tc.expectedCode, w.Code)
+// 			assert.Equal(t, tc.expectedBody, w.Body.String())
+// 		})
+// 	}
+// }

@@ -1,3 +1,10 @@
 .env
 enter_dev.sh
 enter_test.sh
+bazel-*
+variables.tf
+.terraform/providers
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+MODULE.bazel.lock
